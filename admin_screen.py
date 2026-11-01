@@ -1,9 +1,14 @@
+import csv
+import os
+from datetime import datetime
+
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QTableWidget, QFrame,
     QTabWidget, QTableWidgetItem, QHeaderView, QSpinBox,
     QPushButton, QFormLayout,
 )
+from PyQt6.QtCore import Qt
 
 from dialogs import CustomAlertDialog
 from config import Prices, Statuses
@@ -233,3 +238,46 @@ class AdminWindow(QMainWindow):
         for priceSpin in self.priceSpins:
             values.append(priceSpin.value())
         self.user_window.setPrices(*values)
+        
+    # ----- saveOrdersToCSV -----
+    def saveOrdersToCSV(self):
+        rows = []
+        for order in self.orders:
+            try:
+                amount = f"{float(order.get('amount', 0)):.2f}"
+            except (TypeError, ValueError):
+                amount = str(order.get("amount", ""))
+                
+            rows.append([
+                order.get("id", ""),
+                order.get("name", ""),
+                order.get("phone", ""),
+                order.get("account", ""),
+                order.get("job", ""),
+                order.get("source", ""),
+                amount,
+                order.get("status", ""),
+            ])
+        
+        if not rows:
+            print("No orders to save.")      # No empty file is created
+            return
+        
+        try:
+            folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orders")
+            os.makedirs(folder, exist_ok=True)
+            now = datetime.now()
+            path = os.path.join(folder, now.strftime("%Y-%m-%d_%H-%M-%S") + ".csv")
+            
+            # utf-8-sig so Excel shows the characters correctly
+            with open(path, "w", newline="", encoding="utf-8-sig") as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    "Order Number", "Customer Name", "Phone", "Account",
+                    "Job Details", "Source", "Amount", "Status"
+                ])
+                writer.writerows(rows)
+                
+            print(f"Saved {len(rows)} order(s) to: {path}")
+        except Exception:
+            print(f"Failed to save the file D:")  
