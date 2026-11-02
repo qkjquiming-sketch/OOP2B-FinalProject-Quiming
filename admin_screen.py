@@ -18,7 +18,8 @@ class AdminWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Admin Screen")
         self.user_window = None
-        self.orders = [] 
+        self.orders = []            # Stores orders
+        self.deletedOrders = []     # Stores deleted orders (for undo)
         self.init_ui()
 
     def init_ui(self):
@@ -54,6 +55,7 @@ class AdminWindow(QMainWindow):
         self.filterCombo = QComboBox()
         self.filterCombo.addItems(["All Status"] + Statuses)
         self.loadButton = QPushButton("Load Orders")    # Button for loading previous order history
+        self.undoButton = QPushButton("Undo Delete")
         
         # Orders Table
         self.ordersTable = QTableWidget()
@@ -105,6 +107,7 @@ class AdminWindow(QMainWindow):
         filterLayout.addWidget(self.text_search, 1)
         filterLayout.addWidget(self.filterCombo)
         filterLayout.addWidget(self.loadButton)
+        filterLayout.addWidget(self.undoButtonButton)
         
         # ----- Main Layout -----
         adminwindowLayout = QVBoxLayout(central_widget)
@@ -119,6 +122,7 @@ class AdminWindow(QMainWindow):
         self.text_search.textChanged.connect(self.refreshTable)
         self.filterCombo.currentIndexChanged.connect(self.refreshTable)
         self.loadButton.clicked.connect(self.loadOrders)
+        self.undoButton.clicked.connect(self.undoDelete)
         
         self.ordersTable.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.ordersTable.customContextMenuRequested.connect(self.showOrderMenu)
@@ -160,6 +164,10 @@ class AdminWindow(QMainWindow):
         # Load Order Button
         self.loadButton.setProperty("class", "secondaryButton")
         
+        # Undo Delete Button
+        self.undoButton.setProperty("class", "secondarybutton")
+        self.undoButton.setEnabled(False)
+        
     # ---- Add Order -----
     def addOrder(self, order):
         self.orders.append(order)
@@ -193,15 +201,41 @@ class AdminWindow(QMainWindow):
     def deleteOrder(self, orderId):
         if not showConfirmDelete(orderId, self):    return
         
-        for order in self.orders:
-            if order["id"] == orderId:
-                self.orders.remove(order)    
-                break
-            
-        self.refreshTable()
-    
-        if self.user_window is not None:self.user_window.removeStatusRow(orderId)
+        for index in range(len(self.orders)):
+            if self.orders[index]["id"] == orderId:
+                removeOrder = self.orders.pop(index)
 
+                # Removes the der from the user's status table
+                orderInUserScreen = False
+                if self.user_window is not None:
+                    orderInUserScreen = self.user_window.removeStatusRow(orderId)
+        
+                self.deletedOrders.append({
+                    "order": removeOrder,
+                    "index": index,
+                    "orderInUserScreen": orderInUserScreen,
+                })
+                break
+        
+        self.refreshTable()
+        self.undoButton.setEnabled(len(self.deletedOrders) > 0)
+
+    # ----- undoDelete -----
+    def undoDelete(self):
+        if len(self.deletedOrders) == 0: return
+        
+        deletedOrder = self.deletedOrders.pop()
+        order = deletedOrder["order"]
+
+        if not any(existing["id"] == order["id"] for existing in self.orders):
+            self.orders.insert(min(deletedOrder["index"], len(self.orders)), order)
+            
+            if self.user_window is not None and deletedOrder["orderInUserScreen"]:
+                self.user_window.addStatusRow(order["id"], order["job"], order["status"])
+
+        self.refreshTable()
+        self.undoButton.setEnabled(len(self.deletedOrders) > 0)
+        
     # ----- refreshTable -----
     def refreshTable(self):
         search = self.text_search.text().strip().lower()
