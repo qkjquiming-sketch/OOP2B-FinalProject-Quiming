@@ -377,9 +377,9 @@ class UserWindow(BaseWindow):
             return
         
         # Contact number validation (numbers only, 11 digits, and should start with 09)
-        phoneDigitsValidation = phone.replace(" ", "").replace(";", "")
+        phoneDigitsValidation = phone.replace(" ", "").replace("-", "")
         if phone and not (phoneDigitsValidation.isdigit() and len(phoneDigitsValidation) == 11 and phoneDigitsValidation.startswith("09")):
-            showAlert("invalid Number", "Please enter a valid phone number. (e.g. 0912 345 6789)", self)
+            showAlert("Invalid Number!", "Please enter a valid phone number. (e.g. 0912 345 6789)", self)
             return
         
         # Prompts the cutomer for confirmation
@@ -451,6 +451,14 @@ class UserWindow(BaseWindow):
         self.statusTable.setItem(row, 2, QTableWidgetItem(status))
         
         self.statusTable.setRowHidden(row, status in ("Completed", "Cancelled"))   # Hides cancelled jobs/orders from the user's screen
+        
+    # ----- removeStatusRow -----
+    def removeStatusRow(self, orderId):
+        for row in range(self.statusTable.rowCount()):
+            if self.statusTable.item(row, 0).text() == orderId:
+                self.statusTable.removeRow(row)
+                return True
+        return False
                 
     # ----- update/set Prices -----
     def setPrices(self, paper, legal, photoPaper, bw, color, binding, lamination):

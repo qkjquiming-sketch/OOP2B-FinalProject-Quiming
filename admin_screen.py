@@ -195,7 +195,7 @@ class AdminWindow(BaseWindow):
         self.loadButton.setProperty("class", "secondaryButton")
         
         # Undo Delete Button
-        self.undoButton.setProperty("class", "secondarybutton")
+        self.undoButton.setProperty("class", "secondaryButton")
         self.undoButton.setEnabled(False)
         
     # ---- Add Order -----
@@ -475,7 +475,6 @@ class AdminWindow(BaseWindow):
                     
                     loadedOrders += 1
                     
-                    orderNum = int(orderId.split("-")[1])
                     if self.user_window is not None:
                         self.user_window.addStatusRow(orderId, row["Job Details"], row["Status"])
             
