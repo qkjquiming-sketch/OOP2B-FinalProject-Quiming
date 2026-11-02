@@ -454,3 +454,47 @@ QMenu::item:selected {
     background-color: #FFE483;
     color: #000000;
 }
+
+/* MENU BAR AND TOOLBAR */
+
+QMenuBar {
+    border-bottom: 1px solid #E6B607;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+    padding: 6px 12px;
+}
+
+QMenuBar::item:selected {
+    background-color: #E6B607;
+}
+
+QMenu::item:disabled {
+    color: #919194;
+}
+
+QToolBar {
+    background-color: #F5F5F6;
+    border-bottom: 1px solid #BCBDC1;
+    padding: 4px;
+    spacing: 6px;
+}
+
+QToolButton {
+    background-color: transparent;
+    color: #000000;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-weight: 600;
+}
+
+QToolButton:hover {
+    background-color: #FFE483;
+    border: 1px solid #E6B607;
+}
+
+QToolButton:disabled {
+    color: #919194;
+}

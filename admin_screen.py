@@ -12,8 +12,10 @@ from PyQt6.QtCore import Qt
 
 from config import Prices, Statuses, pricesFile
 from dialogs import showAlert, showConfirmDelete
+from base_window import BaseWindow
+from models import Order, orderFromRow
 
-class AdminWindow(QMainWindow):
+class AdminWindow(BaseWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Admin Screen")
@@ -21,6 +23,34 @@ class AdminWindow(QMainWindow):
         self.orders = []            # Stores orders
         self.deletedOrders = []     # Stores deleted orders (for undo)
         self.init_ui()
+
+    # ----- Menu bar and toolbar -----
+    def setupMenus(self):
+        loadAction = self.makeAction("Load Orders...", self.loadOrders)
+        saveAction = self.makeAction("Save Orders Now", self.saveOrdersNow)
+        self.undoAction = self.makeAction("Undo Delete", self.undoDelete)
+        self.undoAction.setEnabled(False)
+        exitAction = self.makeAction("Exit", self.close)
+        aboutAction = self.makeAction("About PrintSync", self.showAbout)
+
+        fileMenu = self.menuBar().addMenu("File")
+        fileMenu.addAction(loadAction)
+        fileMenu.addAction(saveAction)
+        fileMenu.addSeparator()
+        fileMenu.addAction(exitAction)
+
+        editMenu = self.menuBar().addMenu("Edit")
+        editMenu.addAction(self.undoAction)
+
+        helpMenu = self.menuBar().addMenu("Help")
+        helpMenu.addAction(aboutAction)
+
+        toolbar = self.addToolBar("Main Toolbar")
+        toolbar.setMovable(False)
+        toolbar.addAction(loadAction)
+        toolbar.addAction(saveAction)
+        toolbar.addSeparator()
+        toolbar.addAction(self.undoAction)
 
     def init_ui(self):
         # ----- Widgets -----
@@ -218,7 +248,7 @@ class AdminWindow(QMainWindow):
                 break
         
         self.refreshTable()
-        self.undoButton.setEnabled(len(self.deletedOrders) > 0)
+        self.updateUndoState()
 
     # ----- undoDelete -----
     def undoDelete(self):
@@ -234,7 +264,13 @@ class AdminWindow(QMainWindow):
                 self.user_window.addStatusRow(order["id"], order["job"], order["status"])
 
         self.refreshTable()
-        self.undoButton.setEnabled(len(self.deletedOrders) > 0)
+        self.updateUndoState()
+        
+    # ----- updateUndoState -----
+    def updateUndoState(self):
+        canUndo = len(self.deletedOrders) > 0
+        self.undoButton.setEnabled(canUndo)
+        self.undoAction.setEnabled(canUndo)
         
     # ----- refreshTable -----
     def refreshTable(self):
@@ -247,11 +283,11 @@ class AdminWindow(QMainWindow):
         
         for order in self.orders:
             # Order counter (does not count Cancelled orders)
-            if order["status"] != "Cancelled":
+            if order.countsAsSale():
                 sales += order["amount"]
                 
              # Open jobs counter (does not count cancelled and completed jobs/orders)   
-            if order["status"] not in ("Completed", "Cancelled"):
+            if order.isOpen():
                 open_jobs += 1
                 
             matchesSearch = search in order["name"].lower() or search in order["id"].lower()    # Match name/id
@@ -435,52 +471,34 @@ class AdminWindow(QMainWindow):
                 
                     if any(order["id"] == orderId for order in self.orders): continue
                     
-                    self.orders.append({
-                        "id": orderId,
-                        "name": row["Customer Name"],
-                        "phone": row["Phone"],
-                        "account": row["Account"],
-                        "job": row["Job Details"],
-                        "source": row["Source"],
-                        "amount": float(row["Amount"]),
-                        "status": row["Status"],
-                    })
+                    self.orders.append(orderFromRow(row))
                     
                     loadedOrders += 1
                     
                     orderNum = int(orderId.split("-")[1])
-                    if self.user_window is not None and orderNum > self.user_window.orderCount:
-                        self.user_window.orderCount = orderNum
+                    if self.user_window is not None:
+                        self.user_window.addStatusRow(orderId, row["Job Details"], row["Status"])
             
         except Exception:
             return showAlert("Load Failed", "Couldn't read the file.", self)
         
         self.refreshTable()
         showAlert("Orders Loaded", f"Loaded {loadedOrders} order(s).", self)
+               
+    # ----- saveOrdersNow (menu / toolbar) -----
+    def saveOrdersNow(self):
+        path = self.saveOrdersToCSV()
+        if path:
+            showAlert("Orders Saved", f"Saved {len(self.orders)} order(s) to:\n{os.path.basename(path)}", self)
+        else:
+            showAlert("Nothing Saved", "There are no orders to save yet.", self)  
                 
     # ----- saveOrdersToCSV -----
     def saveOrdersToCSV(self):
-        rows = []
-        for order in self.orders:
-            try:
-                amount = f"{float(order.get('amount', 0)):.2f}"
-            except (TypeError, ValueError):
-                amount = str(order.get("amount", ""))
-                
-            rows.append([
-                order.get("id", ""),
-                order.get("name", ""),
-                order.get("phone", ""),
-                order.get("account", ""),
-                order.get("job", ""),
-                order.get("source", ""),
-                amount,
-                order.get("status", ""),
-            ])
-        
+        rows = [order.toRow() for order in self.orders]
         if not rows:
             print("No orders to save.")      # No empty file is created
-            return
+            return None
         
         try:
             folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orders")
@@ -491,13 +509,13 @@ class AdminWindow(QMainWindow):
             # utf-8-sig so Excel shows the characters correctly
             with open(path, "w", newline="", encoding="utf-8-sig") as file:
                 writer = csv.writer(file)
-                writer.writerow([
-                    "Order Number", "Customer Name", "Phone", "Account",
-                    "Job Details", "Source", "Amount", "Status"
-                ])
+                writer.writerow(Order.headerCSV)
                 writer.writerows(rows)
                 
             print(f"Saved {len(rows)} order(s) to: {path}")
+            return path
+        
         except Exception:
             print(f"Failed to save the file D:")  
+            return None
     

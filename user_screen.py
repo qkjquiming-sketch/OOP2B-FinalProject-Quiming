@@ -5,8 +5,11 @@ from PyQt6.QtWidgets import (
 )
 from dialogs import showConfirmOrder, showAlert
 from config import Prices
+from base_window import BaseWindow
+from models import Order
 
-class UserWindow(QMainWindow):
+
+class UserWindow(BaseWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PrintSync - User Screen")
@@ -260,7 +263,38 @@ class UserWindow(QMainWindow):
 
         self.gmailButton.setProperty("class", "sourceButton")
         self.facebookButton.setProperty("class", "sourceButton")
+    
+    # ----- Menu bar and toolbar -----
+    def setupMenus(self):
+        resetFormAction = self.makeAction("Reset Form", self.resetForm)
+        exitAction = self.makeAction("Exit", self.close)
+        aboutAction = self.makeAction("About PrintSync", self.showAbout)
+    
+        fileMenu = self.menuBar().addMenu("File")
+        fileMenu.addAction(resetFormAction)
+        fileMenu.addSeparator()
+        fileMenu.addAction(exitAction)
         
+        helpMenu = self.menuBar().addMenu("Help")
+        helpMenu.addAction(aboutAction)
+        
+        toolbar = self.addToolBar("Main Toolbar")
+        toolbar.setMovable(False)
+        toolbar.addAction(resetFormAction)
+        
+    # ----- resetForm -----
+    def resetForm(self):
+        self.customerNameInput.clear()
+        self.customerPhoneInput.clear()
+        self.customerAccountInput.clear()
+        self.gmailButton.setChecked(True)
+        self.colorCombo.setCurrentIndex(0)
+        self.sizeCombo.setCurrentIndex(0)
+        self.pagesSpin.setValue(1)
+        self.copiesSpin.setValue(1)
+        self.bindingCheck.setChecked(False)
+        self.laminationCheck.setChecked(False)
+    
     # ----- calculateTotal -----
     def calculateTotal(self) -> float:
         # Price of the paper
@@ -352,6 +386,10 @@ class UserWindow(QMainWindow):
         if not showConfirmOrder(name, phone, source, self.breakdownLabel.text(), self.totalLabel.text(), self):
             return
         
+        if self.admin_window is not None:
+            existingOrders = [int(order["id"].split("-")[1]) for order in self.admin_window.orders]
+            self.orderCount = max([self.orderCount] + existingOrders)
+            
         self.orderCount += 1
         orderId = "PS-" + str(self.orderCount)
         
@@ -373,16 +411,7 @@ class UserWindow(QMainWindow):
         if self.laminationCheck.isChecked():
             job += ", Lamination"
             
-        order = {
-            "id": orderId,
-            "name": name,
-            "phone": phone,
-            "account": account,
-            "source": source,
-            "job": job,
-            "amount": self.calculateTotal(),
-            "status": "Pending",
-        }
+        order = Order(orderId, name, phone, account, job, source, self.calculateTotal())
         
         # Sends the order to the admin screen
         if self.admin_window is not None:
@@ -409,16 +438,19 @@ class UserWindow(QMainWindow):
             if self.statusTable.item(row, 0).text() == orderId:
                 self.statusTable.item(row, 2).setText(status)
                 
-                self.statusTable.setRowHidden(row, status == "Completed")   # Hides completed jobs/orders from the user's screen
+                self.statusTable.setRowHidden(row, status in ("Completed", "Cancelled"))  # Hides cancelled jobs/orders from the user's screen
                 
                 break
             
-    # ----- removeStatusRow -----
-    def removeStatusRow(self, orderId):
-        for row in range(self.statusTable.rowCount()):
-            if self.statusTable.item(row, 0).text() == orderId:
-                self.statusTable.removeRow(row)
-                break
+    # ----- addStatusRow -----
+    def addStatusRow(self, orderId, job, status):
+        row = self.statusTable.rowCount()
+        self.statusTable.insertRow(row)
+        self.statusTable.setItem(row, 0, QTableWidgetItem(orderId))
+        self.statusTable.setItem(row, 1, QTableWidgetItem(job))
+        self.statusTable.setItem(row, 2, QTableWidgetItem(status))
+        
+        self.statusTable.setRowHidden(row, status in ("Completed", "Cancelled"))   # Hides cancelled jobs/orders from the user's screen
                 
     # ----- update/set Prices -----
     def setPrices(self, paper, legal, photoPaper, bw, color, binding, lamination):

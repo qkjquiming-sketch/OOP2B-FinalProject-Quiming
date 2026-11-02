@@ -23,10 +23,6 @@ def main():
     user_win.admin_window = admin_win
     admin_win.user_window = user_win
 
-    # If one window closes, the other one closes too
-    user_win.closeEvent = lambda event: app.quit()
-    admin_win.closeEvent = lambda event: app.quit()
-
     # Saves all the orders to a CSV file when the app quits
     app.aboutToQuit.connect(admin_win.saveOrdersToCSV)
 
