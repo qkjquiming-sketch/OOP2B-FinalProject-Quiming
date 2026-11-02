@@ -14,12 +14,12 @@ def main():
 
     if os.path.exists(qss_path):
         with open(qss_path, "r") as f:
-            app.setStyleSheet(f.read())
-    else:
-        print(f"Warning: Could not find QSS file at {qss_path}")
-
-    app.setWindowIcon(QIcon(os.path.join(base_dir, "icon.png")))
-
+            qss = f.read()
+        # Make asset paths absolute so they work inside the .exe
+        assets_dir = os.path.join(base_dir, "assets").replace("\\", "/")
+        qss = qss.replace("url(assets/", f"url({assets_dir}/")
+        app.setStyleSheet(qss)
+        
     screens = app.screens()
     user_win = UserWindow()
     admin_win = AdminWindow()

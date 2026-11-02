@@ -1,4 +1,5 @@
 import os
+import sys
 
 # General Config         
 
@@ -13,14 +14,26 @@ Prices = [
     ("Lamination", 15),                             # Default : 15
 ]
 
-pricesFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prices.json")
+import sys
 
-try:
-    with open(pricesFile, "r") as file:
-        saved = file.read().split()
-    Prices = [(label, int(saved[i])) for i, (label, value) in enumerate(Prices)]
-except Exception:
-    pass
+# Folder of the .exe when packaged, otherwise the project folder
+if getattr(sys, "frozen", False):
+    appFolder = os.path.dirname(sys.executable)    # next to PrintSync.exe (saved data)
+    bundleDir = sys._MEIPASS                    # inside the exe (default files)
+else:
+    appFolder = bundleDir = os.path.dirname(os.path.abspath(__file__))
+
+pricesFile = os.path.join(appFolder, "prices.json")
+
+# Use the saved prices if they exist, otherwise the bundled defaults
+for path in (pricesFile, os.path.join(bundleDir, "prices.json")):
+    try:
+        with open(path, "r") as file:
+            saved = file.read().split()
+        Prices = [(label, int(saved[i])) for i, (label, value) in enumerate(Prices)]
+        break
+    except Exception:
+        continue
 
 # Status
 Statuses = [

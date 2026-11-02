@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from config import Prices, Statuses, pricesFile
+from config import Prices, Statuses, pricesFile, appFolder
 from dialogs import showAlert, showConfirmDelete
 from base_window import BaseWindow
 from models import Order, orderFromRow
@@ -457,7 +457,7 @@ class AdminWindow(BaseWindow):
     
     # ----- loadOrders -----
     def loadOrders(self):
-        ordersFolder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orders")
+        ordersFolder = os.path.join(appFolder, "orders")
         path, _ = QFileDialog.getOpenFileName(self, "Load Orders", ordersFolder, "CSV Files (*.csv)")
 
         if not path: return
@@ -500,7 +500,7 @@ class AdminWindow(BaseWindow):
             return None
         
         try:
-            folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orders")
+            folder = os.path.join(appFolder, "orders")
             os.makedirs(folder, exist_ok=True)
             now = datetime.now()
             path = os.path.join(folder, now.strftime("%Y-%m-%d_%H-%M-%S") + ".csv")
