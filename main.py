@@ -1,6 +1,7 @@
 import os
 import sys
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QIcon
 
 from admin_screen import AdminWindow
 from user_screen import UserWindow
@@ -16,6 +17,8 @@ def main():
             app.setStyleSheet(f.read())
     else:
         print(f"Warning: Could not find QSS file at {qss_path}")
+
+    app.setWindowIcon(QIcon(os.path.join(base_dir, "icon.png")))
 
     screens = app.screens()
     user_win = UserWindow()
@@ -36,6 +39,7 @@ def main():
         admin_win.show()
 
     sys.exit(app.exec())
+
 
 
 if __name__ == "__main__":
