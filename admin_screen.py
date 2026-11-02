@@ -107,7 +107,7 @@ class AdminWindow(QMainWindow):
         filterLayout.addWidget(self.text_search, 1)
         filterLayout.addWidget(self.filterCombo)
         filterLayout.addWidget(self.loadButton)
-        filterLayout.addWidget(self.undoButtonButton)
+        filterLayout.addWidget(self.undoButton)
         
         # ----- Main Layout -----
         adminwindowLayout = QVBoxLayout(central_widget)
