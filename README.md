@@ -15,12 +15,12 @@ It runs fully offline. With two monitors, the User Screen opens on the first and
 
 ### Option 1: Download the app (Windows, no Python needed)
 
-1. Go to the [**Releases**](../../releases) page and download `PrintSync.zip`.
-2. Right-click the zip and choose **Extract All**. Don't run it from inside the zip.
-3. Open the extracted `PrintSync` folder and double-click `PrintSync.exe`.
+1. Go to the [**Releases**](../../releases) page and download `PrintSync.exe`.
+2. Move it to a normal folder like Desktop or Documents (not `Program Files`).
+3. Double-click `PrintSync.exe`. That's it.
 
-Keep `PrintSync.exe` inside its folder, because it needs the `_internal` folder next to it.
-To make a shortcut, right-click the exe, then **Send to > Desktop (create shortcut)**.
+The first launch takes a few seconds while the app unpacks itself.
+Saved prices and the `orders` folder are created next to the `.exe`.
 
 > Windows may show "Windows protected your PC" because the app is unsigned. Click **More info > Run anyway**.
 
@@ -39,14 +39,19 @@ python main.py
 
 ## Building the .exe yourself
 
-Requires Windows, Python, and the packages below.
+Requires Windows, Python, and the packages below. Run in Command Prompt:
 
 ```
 pip install PyQt6 pyinstaller pillow
-pyinstaller --noconfirm PrintSync.spec
+pyinstaller --noconfirm --windowed --onefile --name PrintSync --icon icon.ico ^
+    --add-data "style.qss;." ^
+    --add-data "prices.json;." ^
+    --add-data "icon.png;." ^
+    --add-data "assets;assets" ^
+    main.py
 ```
 
-The app is created in `dist\PrintSync\`. Zip that folder to share it.
+The single file is created at `dist\PrintSync.exe`. Upload it to GitHub Releases.
 
 To use your own icon, replace `customIcon.png` with your image and run `python make_icon.py`. This regenerates `icon.png` and `icon.ico`.
 
@@ -79,4 +84,4 @@ PrintSync/
 `Pending` > `Printing` > `Ready for Pickup` > `Completed` (or `Cancelled`)
 
 Cancelled orders are not counted in total sales.
-Orders are saved to a CSV file when the app closes.
+Orders are saved to a CSV file in the `orders` folder (next to the `.exe`) when the app closes.
