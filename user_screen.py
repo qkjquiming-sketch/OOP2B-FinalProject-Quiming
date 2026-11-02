@@ -42,7 +42,7 @@ class UserWindow(QMainWindow):
         
         customerPhoneLabel = QLabel("Contact Number")
         self.customerPhoneInput = QLineEdit()
-        self.customerPhoneInput.setPlaceholderText("09XX XXXX XXXX")
+        self.customerPhoneInput.setPlaceholderText("09XX XXX XXXX")
         
         customerAccountLabel = QLabel("Email / Facebook Account")
         self.customerAccountInput = QLineEdit()
@@ -340,6 +340,12 @@ class UserWindow(QMainWindow):
         # Makes it so that Name is a field that requires to be filled out
         if not name:
             showAlert("Missing Info", "Please fillout the required info.", self)
+            return
+        
+        # Contact number validation (numbers only, 11 digits, and should start with 09)
+        phoneDigitsValidation = phone.replace(" ", "").replace(";", "")
+        if phone and not (phoneDigitsValidation.isdigit() and len(phoneDigitsValidation) == 11 and phoneDigitsValidation.startswith("09")):
+            showAlert("invalid Number", "Please enter a valid phone number. (e.g. 0912 345 6789)", self)
             return
         
         # Prompts the cutomer for confirmation
