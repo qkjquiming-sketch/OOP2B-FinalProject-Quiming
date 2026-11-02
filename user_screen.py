@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QComboBox, QSpinBox, QCheckBox, QPushButton,
     QTableWidget, QTableWidgetItem, QButtonGroup, QHeaderView
 )
-from dialogs import ConfirmOrderDialog, CustomAlertDialog
+from dialogs import showConfirmOrder, showAlert
 from config import Prices
 
 class UserWindow(QMainWindow):
@@ -92,7 +92,7 @@ class UserWindow(QMainWindow):
         pagesLabel = QLabel("Pages")
         self.pagesSpin = QSpinBox()
         self.pagesSpin.setRange(1, 1000)
-        self.pagesSpin.setValue(10)
+        self.pagesSpin.setValue(1)
         
         # Compies
         copiesLabel = QLabel("Copies")
@@ -118,6 +118,7 @@ class UserWindow(QMainWindow):
         self.statusTable.setColumnCount(3)
         self.statusTable.setHorizontalHeaderLabels(["Order", "Job", "Status"])
         self.statusTable.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.statusTable.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
         # ----- Layout -----
         self.setCentralWidget(central_widget)
@@ -320,7 +321,7 @@ class UserWindow(QMainWindow):
             f"- Add-ons: {addonsText} = ₱{addonsCost}\n"
             f"- Multiplier: ₱{subtotalPerCopy} × {copies} copy"
         )
-        self.totalLabel.setText(f"₱{totalPrice}")
+        self.totalLabel.setText(f"Total: ₱{totalPrice}")
         return totalPrice
     
     # ----- placeOrder -----
@@ -338,14 +339,11 @@ class UserWindow(QMainWindow):
             
         # Makes it so that Name is a field that requires to be filled out
         if not name:
-            CustomAlertDialog(
-                "Missing Info",
-                "Please fillout the required info.",
-                self).exec()
+            showAlert("Missing Info", "Please fillout the required info.", self)
             return
         
         # Prompts the cutomer for confirmation
-        if not ConfirmOrderDialog(name, phone, source, self).exec():
+        if not showConfirmOrder(name, phone, source, self.breakdownLabel.text(), self.totalLabel.text(), self):
             return
         
         self.orderCount += 1
@@ -359,8 +357,11 @@ class UserWindow(QMainWindow):
             color = "Full Color"
         else:
             color = "Black and White"
-            
-        job = f"{pages} pages, {color}, {size}, {copies} copies"
+        
+        copyWord    = "copy" if copies == 1 else "copies"
+        pagesWord   = "page" if pages == 1 else "pages"
+        
+        job = f"{pages} {pagesWord}, {color}, {size}, {copies} {copyWord}"
         if self.bindingCheck.isChecked():
             job += ", Binding"
         if self.laminationCheck.isChecked():
@@ -388,7 +389,7 @@ class UserWindow(QMainWindow):
         self.statusTable.setItem(row, 1, QTableWidgetItem(job))
         self.statusTable.setItem(row, 2, QTableWidgetItem("Pending"))
         
-        CustomAlertDialog("Order Placed!", f"Your order({orderId}) was successfully submitted.", self). exec()
+        showAlert("Order Placed!", f"Your order({orderId}) was successfully submitted.", self)
         
         # Clears the form for the next customer
         self.customerNameInput.clear()
@@ -404,6 +405,13 @@ class UserWindow(QMainWindow):
                 
                 self.statusTable.setRowHidden(row, status == "Completed")   # Hides completed jobs/orders from the user's screen
                 
+                break
+            
+    # ----- removeStatusRow -----
+    def removeStatusRow(self, orderId):
+        for row in range(self.statusTable.rowCount()):
+            if self.statusTable.item(row, 0).text() == orderId:
+                self.statusTable.removeRow(row)
                 break
                 
     # ----- update/set Prices -----

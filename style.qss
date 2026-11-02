@@ -104,6 +104,16 @@ QLabel[class="metric-value"] {
     color: #000000;
 }
 
+QLabel#totalLabel {
+    background-color: #E9EAEC;
+    border: 1px solid #BCBDC1;
+    border-radius: 8px;
+    color: #000000;
+    font-size: 22px;
+    font-weight: bold;
+    padding: 10px 14px;
+}
+
 
 /* INPUTS */
 
@@ -422,4 +432,25 @@ QScrollBar::add-line, QScrollBar::sub-line {
 
 QScrollBar::add-page, QScrollBar::sub-page {
     background: none;
+}
+
+/* RIGHT-CLICK MENU */
+
+QMenu {
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid #BCBDC1;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+QMenu::item {
+    background-color: transparent;
+    padding: 6px 20px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background-color: #FFE483;
+    color: #000000;
 }

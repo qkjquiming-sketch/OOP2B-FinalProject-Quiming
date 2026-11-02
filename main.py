@@ -27,6 +27,9 @@ def main():
     user_win.closeEvent = lambda event: app.quit()
     admin_win.closeEvent = lambda event: app.quit()
 
+    # Saves all the orders to a CSV file when the app quits
+    app.aboutToQuit.connect(admin_win.saveOrdersToCSV)
+
     if len(screens) >= 2:
         user_win.setScreen(screens[0])
         user_win.showMaximized()

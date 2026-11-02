@@ -6,13 +6,12 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QTableWidget, QFrame,
     QTabWidget, QTableWidgetItem, QHeaderView, QSpinBox,
-    QPushButton, QFormLayout,
+    QPushButton, QFormLayout, QFileDialog, QMenu
 )
 from PyQt6.QtCore import Qt
 
-from dialogs import CustomAlertDialog
-from config import Prices, Statuses
-
+from config import Prices, Statuses, pricesFile
+from dialogs import showAlert, showConfirmDelete
 
 class AdminWindow(QMainWindow):
     def __init__(self):
@@ -30,15 +29,15 @@ class AdminWindow(QMainWindow):
         # Metric cards
         salesCard = QFrame()
         salesTitleLabel = QLabel("Sales Today")
-        self.salesLabel = QLabel("Sales Today")    # Placeholder
+        self.salesLabel = QLabel("Sales Today")     # Placeholder
         
         ordersCard = QFrame()
         ordersTitleLabel = QLabel("Total Orders")
-        self.ordersLabel = QLabel("Total Orders")  # Placeholder
+        self.ordersLabel = QLabel("Total Orders")   # Placeholder
         
         jobsCard = QFrame()
         jobsTitleLabel = QLabel("Open Jobs")
-        self.jobsLabel = QLabel("Open Jobs")   # Placeholder
+        self.jobsLabel = QLabel("Open Jobs")        # Placeholder
         
         # Orders heading
         ordersTitle = QLabel("Orders")
@@ -54,6 +53,7 @@ class AdminWindow(QMainWindow):
         
         self.filterCombo = QComboBox()
         self.filterCombo.addItems(["All Status"] + Statuses)
+        self.loadButton = QPushButton("Load Orders")    # Button for loading previous order history
         
         # Orders Table
         self.ordersTable = QTableWidget()
@@ -104,6 +104,7 @@ class AdminWindow(QMainWindow):
         filterLayout.setSpacing(10)
         filterLayout.addWidget(self.text_search, 1)
         filterLayout.addWidget(self.filterCombo)
+        filterLayout.addWidget(self.loadButton)
         
         # ----- Main Layout -----
         adminwindowLayout = QVBoxLayout(central_widget)
@@ -117,8 +118,47 @@ class AdminWindow(QMainWindow):
         # ----- Signals -----
         self.text_search.textChanged.connect(self.refreshTable)
         self.filterCombo.currentIndexChanged.connect(self.refreshTable)
+        self.loadButton.clicked.connect(self.loadOrders)
+        
+        self.ordersTable.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.ordersTable.customContextMenuRequested.connect(self.showOrderMenu)
         
         self.refreshTable()
+        
+        # ----- Widget Styling -----
+        # Metric cards
+        salesCard.setProperty("class", "metric-card")
+        salesTitleLabel.setProperty("class", "metric-title")
+        self.salesLabel.setProperty("class", "metric-value")
+        salesLayout.setContentsMargins(16, 12 ,16, 12)
+        salesLayout.setSpacing(2)
+        
+        ordersCard.setProperty("class", "metric-card")
+        ordersTitleLabel.setProperty("class", "metric-title")
+        self.ordersLabel.setProperty("class", "metric-value")
+        ordersLayout.setContentsMargins(16, 12 ,16, 12)
+        ordersLayout.setSpacing(2)
+        
+        jobsCard.setProperty("class", "metric-card")
+        jobsTitleLabel.setProperty("class", "metric-title")
+        self.jobsLabel.setProperty("class", "metric-value")
+        jobsLayout.setContentsMargins(16, 12 ,16, 12)
+        jobsLayout.setSpacing(2)
+        
+        # Orders heading
+        ordersTitle.setProperty("class", "section")
+        ordersSubtitle.setObjectName("subtitle")
+        
+        # Orders table
+        self.ordersTable.setAlternatingRowColors(True)
+        self.ordersTable.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        
+        # Spacing
+        adminwindowLayout.setContentsMargins(12, 12, 12, 12)
+        adminwindowLayout.setSpacing(12)
+        
+        # Load Order Button
+        self.loadButton.setProperty("class", "secondaryButton")
         
     # ---- Add Order -----
     def addOrder(self, order):
@@ -135,7 +175,33 @@ class AdminWindow(QMainWindow):
         
         if self.user_window is not None:
             self.user_window.updateStatusRow(orderId, newStatus)
+            
+    # ----- Manage Orders -----
+    def showOrderMenu(self, pos):
+        row = self.ordersTable.rowAt(pos.y())
+        if row < 0: return
+        
+        self.ordersTable.selectRow(row)
+        orderId = self.ordersTable.item(row, 0).text()
+        
+        menu = QMenu(self)
+        deleteOrderAction = menu.addAction("Delete Order")
+        selected = menu.exec(self.ordersTable.viewport().mapToGlobal(pos))
+        
+        if selected == deleteOrderAction:   self.deleteOrder(orderId)
+        
+    def deleteOrder(self, orderId):
+        if not showConfirmDelete(orderId, self):    return
+        
+        for order in self.orders:
+            if order["id"] == orderId:
+                self.orders.remove(order)    
+                break
+            
+        self.refreshTable()
     
+        if self.user_window is not None:self.user_window.removeStatusRow(orderId)
+
     # ----- refreshTable -----
     def refreshTable(self):
         search = self.text_search.text().strip().lower()
@@ -168,15 +234,6 @@ class AdminWindow(QMainWindow):
                     order["account"]
                     ])
                 
-                cells = [
-                    order["id"],
-                    customer,
-                    order["job"],
-                    order["source"],
-                    price,
-                    order["status"]
-                ]
-                
                 self.ordersTable.setItem(row, 0, QTableWidgetItem(order["id"]))
                 self.ordersTable.setItem(row, 1, QTableWidgetItem(customer))
                 self.ordersTable.setItem(row, 2, QTableWidgetItem(order["job"]))
@@ -206,17 +263,86 @@ class AdminWindow(QMainWindow):
         pricePageTitle = QLabel("Change Prices")
         pricePageSubtitle = QLabel("Click SAVE PRICES to use the new prices.")
         
-        priceFormLayout = QFormLayout()
+        priceCard = QFrame()
+        priceFormLayout = QFormLayout(priceCard)
         self.priceSpins = []
         
-        for label, value in Prices:
-            spin = QSpinBox()
-            spin.setRange(0, 999)
-            spin.setPrefix("₱")
-            spin.setValue(value)
-            
-            priceFormLayout.addRow(QLabel(label), spin)
-            self.priceSpins.append(spin)
+        # Paper (Letter / Short and A4)
+        paperLabel = QLabel(Prices[0][0])
+        paperLabel.setProperty("class", "field-label")
+        paperSpin = QSpinBox()
+        paperSpin.setRange(0, 999)
+        paperSpin.setPrefix("₱")
+        paperSpin.setValue(Prices[0][1])
+        paperSpin.setFixedWidth(120)
+        priceFormLayout.addRow(paperLabel, paperSpin)
+        self.priceSpins.append(paperSpin)
+        
+        # Legal / Long
+        legalLabel = QLabel(Prices[1][0])
+        legalLabel.setProperty("class", "field-label")
+        legalSpin = QSpinBox()
+        legalSpin.setRange(0, 999)
+        legalSpin.setPrefix("₱")
+        legalSpin.setValue(Prices[1][1])
+        legalSpin.setFixedWidth(120)
+        priceFormLayout.addRow(legalLabel, legalSpin)
+        self.priceSpins.append(legalSpin)
+        
+        # Photo Paper
+        photoLabel = QLabel(Prices[2][0])
+        photoLabel.setProperty("class", "field-label")
+        photoSpin = QSpinBox()
+        photoSpin.setRange(0, 999)
+        photoSpin.setPrefix("₱")
+        photoSpin.setValue(Prices[2][1])
+        photoSpin.setFixedWidth(120)
+        priceFormLayout.addRow(photoLabel, photoSpin)
+        self.priceSpins.append(photoSpin)
+        
+        # Black and White
+        bwLabel = QLabel(Prices[3][0])
+        bwLabel.setProperty("class", "field-label")
+        bwSpin = QSpinBox()
+        bwSpin.setRange(0, 999)
+        bwSpin.setPrefix("₱")
+        bwSpin.setValue(Prices[3][1])
+        bwSpin.setFixedWidth(120)
+        priceFormLayout.addRow(bwLabel, bwSpin)
+        self.priceSpins.append(bwSpin)
+        
+        # Full Color
+        colorLabel = QLabel(Prices[4][0])
+        colorLabel.setProperty("class", "field-label")
+        colorSpin = QSpinBox()
+        colorSpin.setRange(0, 999)
+        colorSpin.setPrefix("₱")
+        colorSpin.setValue(Prices[4][1])
+        colorSpin.setFixedWidth(120)
+        priceFormLayout.addRow(colorLabel, colorSpin)
+        self.priceSpins.append(colorSpin)
+        
+        # Binding
+        bindingLabel = QLabel(Prices[5][0])
+        bindingLabel.setProperty("class", "field-label")
+        bindingSpin = QSpinBox()
+        bindingSpin.setRange(0, 999)
+        bindingSpin.setPrefix("₱")
+        bindingSpin.setValue(Prices[5][1])
+        bindingSpin.setFixedWidth(120)
+        priceFormLayout.addRow(bindingLabel, bindingSpin)
+        self.priceSpins.append(bindingSpin)
+        
+        # Lamination
+        laminationLabel = QLabel(Prices[6][0])
+        laminationLabel.setProperty("class", "field-label")
+        laminationSpin = QSpinBox()
+        laminationSpin.setRange(0, 999)
+        laminationSpin.setPrefix("₱")
+        laminationSpin.setValue(Prices[6][1])
+        laminationSpin.setFixedWidth(120)
+        priceFormLayout.addRow(laminationLabel, laminationSpin)
+        self.priceSpins.append(laminationSpin)
         
         saveButton = QPushButton("Save Prices")
         
@@ -224,21 +350,80 @@ class AdminWindow(QMainWindow):
         pricePageLayout = QVBoxLayout(pricePageWidget)
         pricePageLayout.addWidget(pricePageTitle)
         pricePageLayout.addWidget(pricePageSubtitle)
-        pricePageLayout.addLayout(priceFormLayout)
+        pricePageLayout.addWidget(priceCard)
         pricePageLayout.addWidget(saveButton)
         pricePageLayout.addStretch()
         
         # ----- Signals -----
         saveButton.clicked.connect(self.savePrices)
+        
+        # ----- Widget Styling -----
+        pricePageTitle.setObjectName("title")
+        pricePageSubtitle.setObjectName("subtitle")
+        priceCard.setProperty("class", "card")
+        saveButton.setObjectName("savePricesButton")
+        
+        priceFormLayout.setContentsMargins(16, 12, 16, 12)
+        priceFormLayout.setSpacing(10)
+        pricePageLayout.setContentsMargins(12, 12, 12, 12)
+        pricePageLayout.setSpacing(12)
+        
         return pricePageWidget
     
     # ----- savePrices -----
     def savePrices(self):
         values = []
-        for priceSpin in self.priceSpins:
-            values.append(priceSpin.value())
+        values.append(self.priceSpins[0].value())
+        values.append(self.priceSpins[1].value())
+        values.append(self.priceSpins[2].value())
+        values.append(self.priceSpins[3].value())
+        values.append(self.priceSpins[4].value())
+        values.append(self.priceSpins[5].value())
+        values.append(self.priceSpins[6].value())
         self.user_window.setPrices(*values)
         
+        with open(pricesFile, "w") as file:
+            file.write("\n".join(str(v) for v in values))
+    
+    # ----- loadOrders -----
+    def loadOrders(self):
+        ordersFolder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orders")
+        path, _ = QFileDialog.getOpenFileName(self, "Load Orders", ordersFolder, "CSV Files (*.csv)")
+
+        if not path: return
+        
+        loadedOrders = 0
+        try:
+            with open(path, "r", newline="", encoding="utf-8-sig") as file:
+                fileReader = csv.DictReader(file)
+                for row in fileReader:
+                    orderId = row["Order Number"]
+                
+                    if any(order["id"] == orderId for order in self.orders): continue
+                    
+                    self.orders.append({
+                        "id": orderId,
+                        "name": row["Customer Name"],
+                        "phone": row["Phone"],
+                        "account": row["Account"],
+                        "job": row["Job Details"],
+                        "source": row["Source"],
+                        "amount": float(row["Amount"]),
+                        "status": row["Status"],
+                    })
+                    
+                    loadedOrders += 1
+                    
+                    orderNum = int(orderId.split("-")[1])
+                    if self.user_window is not None and orderNum > self.user_window.orderCount:
+                        self.user_window.orderCount = orderNum
+            
+        except Exception:
+            return showAlert("Load Failed", "Couldn't read the file.", self)
+        
+        self.refreshTable()
+        showAlert("Orders Loaded", f"Loaded {loadedOrders} order(s).", self)
+                
     # ----- saveOrdersToCSV -----
     def saveOrdersToCSV(self):
         rows = []
@@ -281,3 +466,4 @@ class AdminWindow(QMainWindow):
             print(f"Saved {len(rows)} order(s) to: {path}")
         except Exception:
             print(f"Failed to save the file D:")  
+    

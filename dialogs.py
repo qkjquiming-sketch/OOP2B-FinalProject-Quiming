@@ -1,123 +1,143 @@
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QComboBox, QFrame, QFormLayout
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QFrame, QFormLayout
 )
 
-from config import Statuses
-
-class ConfirmOrderDialog(QDialog):
+# ----- showConfirmOrder -----
+def showConfirmOrder(customerName, phone, source, breakdownText, totalText, parent=None):
+    dialog = QDialog(parent)
+    dialog.setWindowTitle("Confirm Order Submission")
+    dialog.setMinimumWidth(360)
     
-    def __init__(self, customer_name: str, phone: str, source: str, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Confirm Order Submission")
-        self.setMinimumWidth(360)
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-        
-        title = QLabel("Confirm Your Order")
-        title.setObjectName("dialogTitle")
-        layout.addWidget(title)
-        
-        card = QFrame()
-        card.setProperty("class", "card")
-        card_layout = QFormLayout(card)
-        card_layout.setContentsMargins(14, 12, 14, 12)
-        card_layout.setSpacing(8)
-        
-        card_layout.addRow(self._label("Customer Name:"), QLabel(customer_name))
-        card_layout.addRow(self._label("Contact Number:"), QLabel(phone))
-        card_layout.addRow(self._label("File Source:"), QLabel(source))
-        
-        layout.addWidget(card)
-        
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(8)
-        
-        btn_cancel = QPushButton("Cancel")
-        btn_cancel.setProperty("class", "secondaryButton")
-        btn_cancel.clicked.connect(self.reject)
-        
-        btn_confirm = QPushButton("Confirm & Submit")
-        btn_confirm.clicked.connect(self.accept)
-        btn_confirm.setDefault(True)
-        
-        btn_layout.addWidget(btn_cancel)
-        btn_layout.addWidget(btn_confirm)
-        layout.addLayout(btn_layout)
-
-    def _label(self, text: str) -> QLabel:
-        lbl = QLabel(text)
-        lbl.setProperty("class", "field-label")
-        return lbl
-
-
-class CustomAlertDialog(QDialog):
+    # ----- Widgets -----
+    titleLabel = QLabel("Confirm Your Order")
     
-    def __init__(self, title_text: str, message_text: str, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(title_text)
-        self.setMinimumWidth(300)
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-        
-        lbl_title = QLabel(title_text)
-        lbl_title.setObjectName("dialogTitle")
-        layout.addWidget(lbl_title)
-        
-        lbl_msg = QLabel(message_text)
-        lbl_msg.setWordWrap(True)
-        layout.addWidget(lbl_msg)
-        
-        btn_ok = QPushButton("OK")
-        btn_ok.clicked.connect(self.accept)
-        btn_ok.setDefault(True)
-        layout.addWidget(btn_ok)
-
-
-class UpdateStatusDialog(QDialog):
+    infoCard = QFrame()
+    nameLabel = QLabel("Customer Name:")
+    phoneLabel = QLabel("Contact Number:")
+    sourceLabel = QLabel("File Source:")
     
-    def __init__(self, order_id: str, current_status: str = "Pending", parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(f"Update Order {order_id}")
-        self.setMinimumWidth(320)
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-        
-        title = QLabel(f"Order #{order_id}")
-        title.setObjectName("dialogTitle")
-        layout.addWidget(title)
-        
-        form = QFormLayout()
-        lbl_status = QLabel("Set Status:")
-        lbl_status.setProperty("class", "field-label")
-        
-        self.combo_status = QComboBox()
-        self.combo_status.addItems(Statuses)
-        self.combo_status.setCurrentText(current_status)
-        
-        form.addRow(lbl_status, self.combo_status)
-        layout.addLayout(form)
-        
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(8)
-        
-        btn_cancel = QPushButton("Cancel")
-        btn_cancel.setProperty("class", "secondaryButton")
-        btn_cancel.clicked.connect(self.reject)
-        
-        btn_save = QPushButton("Save")
-        btn_save.clicked.connect(self.accept)
-        btn_save.setDefault(True)
-        
-        btn_layout.addWidget(btn_cancel)
-        btn_layout.addWidget(btn_save)
-        layout.addLayout(btn_layout)
+    priceTitleLabel = QLabel("Price Breakdown")
+    breakdownLabel = QLabel(breakdownText)
+    totalLabel = QLabel(totalText)
+    
+    cancelButton = QPushButton("Cancel")
+    confirmButton = QPushButton("Confirm & Submit")
+    
+    # ----- Layout -----
+    infoLayout = QFormLayout(infoCard)
+    infoLayout.addRow(nameLabel, QLabel(customerName))
+    infoLayout.addRow(phoneLabel, QLabel(phone))
+    infoLayout.addRow(sourceLabel, QLabel(source))
+    
+    buttonLayout = QHBoxLayout()
+    buttonLayout.addWidget(cancelButton)
+    buttonLayout.addWidget(confirmButton)
+    
+    # ----- Main Layout -----
+    dialogLayout = QVBoxLayout(dialog)
+    dialogLayout.addWidget(titleLabel)
+    dialogLayout.addWidget(infoCard)
+    dialogLayout.addWidget(priceTitleLabel)
+    dialogLayout.addWidget(breakdownLabel)
+    dialogLayout.addWidget(totalLabel)
+    dialogLayout.addLayout(buttonLayout)
+    
+    # ----- Signals -----
+    cancelButton.clicked.connect(dialog.reject)
+    confirmButton.clicked.connect(dialog.accept)
+    
+    # ----- Widget Styling -----
+    titleLabel.setObjectName("dialogTitle")
+    infoCard.setProperty("class", "card")
+    nameLabel.setProperty("class", "field-label")
+    phoneLabel.setProperty("class", "field-label")
+    sourceLabel.setProperty("class", "field-label")
+    priceTitleLabel.setProperty("class", "section")
+    breakdownLabel.setProperty("class", "card")
+    totalLabel.setObjectName("totalLabel")
+    cancelButton.setProperty("class", "secondaryButton")
+    confirmButton.setDefault(True)
+    
+    # Spacing
+    infoLayout.setContentsMargins(14, 12, 14, 12)
+    infoLayout.setSpacing(8)
+    buttonLayout.setSpacing(8)
+    dialogLayout.setContentsMargins(16, 16, 16, 16)
+    dialogLayout.setSpacing(12)
+    
+    return dialog.exec()
 
-    def get_selected_status(self) -> str:
-        return self.combo_status.currentText()
+
+# ----- showAlert -----
+def showAlert(titleText, messageText, parent=None):
+    dialog = QDialog(parent)
+    dialog.setWindowTitle(titleText)
+    dialog.setMinimumWidth(300)
+    
+    # ----- Widgets -----
+    titleLabel = QLabel(titleText)
+    messageLabel = QLabel(messageText)
+    okButton = QPushButton("OK")
+    
+    # ----- Main Layout -----
+    dialogLayout = QVBoxLayout(dialog)
+    dialogLayout.addWidget(titleLabel)
+    dialogLayout.addWidget(messageLabel)
+    dialogLayout.addWidget(okButton)
+    
+    # ----- Signals -----
+    okButton.clicked.connect(dialog.accept)
+    
+    # ----- Widget Styling -----
+    titleLabel.setObjectName("dialogTitle")
+    messageLabel.setWordWrap(True)
+    okButton.setDefault(True)
+    
+    # Spacing
+    dialogLayout.setContentsMargins(16, 16, 16, 16)
+    dialogLayout.setSpacing(12)
+    
+    return dialog.exec()
+
+
+# ----- showConfirmDelete -----
+def showConfirmDelete(orderId, parent=None):
+    dialog = QDialog(parent)
+    dialog.setWindowTitle("Delete Order")
+    dialog.setMinimumWidth(300)
+    
+    # ----- Widgets -----
+    titleLabel = QLabel("Delete Order?")
+    messageLabel = QLabel(f"Order {orderId} will be removed. This can't be undone.")
+    
+    cancelButton = QPushButton("Cancel")
+    deleteButton = QPushButton("Delete")
+    
+    # ----- Layout -----
+    buttonLayout = QHBoxLayout()
+    buttonLayout.addWidget(cancelButton)
+    buttonLayout.addWidget(deleteButton)
+    
+    # ----- Main Layout -----
+    dialogLayout = QVBoxLayout(dialog)
+    dialogLayout.addWidget(titleLabel)
+    dialogLayout.addWidget(messageLabel)
+    dialogLayout.addLayout(buttonLayout)
+    
+    # ----- Signals -----
+    cancelButton.clicked.connect(dialog.reject)
+    deleteButton.clicked.connect(dialog.accept)
+    
+    # ----- Widget Styling -----
+    titleLabel.setObjectName("dialogTitle")
+    messageLabel.setWordWrap(True)
+    cancelButton.setProperty("class", "secondaryButton")
+    cancelButton.setDefault(True)       # Enter = Cancel, so it's not deleted by accident
+    
+    # Spacing
+    buttonLayout.setSpacing(8)
+    dialogLayout.setContentsMargins(16, 16, 16, 16)
+    dialogLayout.setSpacing(12)
+    
+    return dialog.exec()
