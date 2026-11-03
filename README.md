@@ -13,8 +13,6 @@ It runs fully offline. With two monitors, the User Screen opens on the first and
 
 ## Installation
 
-### Option 1: Download the app (Windows, no Python needed)
-
 1. Go to the [**Releases**](../../releases) page.
 2. Download either:
    - `PrintSync.exe`, or
