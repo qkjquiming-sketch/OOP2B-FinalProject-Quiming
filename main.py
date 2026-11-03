@@ -15,7 +15,7 @@ def main():
     if os.path.exists(qss_path):
         with open(qss_path, "r") as f:
             qss = f.read()
-        # Make asset paths absolute so they work inside the .exe
+
         assets_dir = os.path.join(base_dir, "assets").replace("\\", "/")
         qss = qss.replace("url(assets/", f"url({assets_dir}/")
         app.setStyleSheet(qss)
@@ -25,6 +25,9 @@ def main():
     admin_win = AdminWindow()
     user_win.admin_window = admin_win
     admin_win.user_window = user_win
+    
+    icon = QIcon(os.path.join(base_dir, "icon.png"))
+    app.setWindowIcon(icon)
 
     # Saves all the orders to a CSV file when the app quits
     app.aboutToQuit.connect(admin_win.saveOrdersToCSV)
