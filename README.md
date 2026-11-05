@@ -16,7 +16,7 @@ It runs fully offline. With two monitors, the User Screen opens on the first and
 ## Installation
 
 1. Go to the [Releases](https://github.com/qkjquiming-sketch/OOP2B-FinalProject-Quiming/releases) page and download `PrintSync.zip`.
-2. Right-click the zip file and choose **Extract All...**. Pick a normal folder like Desktop or Documents (not `Program Files`).
+2. Right-click the zip file and choose **Extract to "PrintSync\"**.
 3. Open the extracted folder and double-click `PrintSync.exe`.
 4. Wait a few seconds. The first launch is slower while the app unpacks itself.
 5. If Windows shows "Windows protected your PC", click **More info**, then **Run anyway**. This appears because the app is unsigned.
