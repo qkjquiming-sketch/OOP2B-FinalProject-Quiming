@@ -11,8 +11,6 @@ It runs fully offline. With two monitors, the User Screen opens on the first and
 
 ---
 
-# Getting Started with PrintSync
-
 ## Installation
 
 1. Go to the [Releases](https://github.com/qkjquiming-sketch/OOP2B-FinalProject-Quiming/releases) page and download `PrintSync.zip`.
@@ -21,14 +19,7 @@ It runs fully offline. With two monitors, the User Screen opens on the first and
 4. Wait a few seconds. The first launch is slower while the app unpacks itself.
 5. If Windows shows "Windows protected your PC", click **More info**, then **Run anyway**. This appears because the app is unsigned.
 
-Your saved prices and the `orders` folder are created next to `PrintSync.exe`.
-
-## Using PrintSync
-
-6. [Set your prices.]
-7. [Create a new order and fill in the details.]
-8. [Save the order. Find it in the `orders` folder.]
-   
+Your saved prices and the `orders` folder are created inside the "PrintSync\" folder.
 ---
 
 ## Project Structure
